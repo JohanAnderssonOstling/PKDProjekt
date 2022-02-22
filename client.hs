@@ -4,7 +4,7 @@ import Network.Socket
 
 main :: IO ()
 main = do
-    connectToServer "127.0.0.1" 18000
+    connectToServer "127.0.0.1" 14000
 
 connectToServer :: String -> Int -> IO ()
 connectToServer host port = do
@@ -22,7 +22,7 @@ sendEcho socket = do
     putStrLn line
     hPutStrLn handle "Hello from client"
     line <- hGetLine handle
-    hPutStrLn handle line
+    putStrLn line
     hClose handle
     close socket
 

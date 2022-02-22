@@ -9,7 +9,7 @@ main = do
     putStrLn "Creating socket"
     sock <- socket AF_INET Stream 0 -- Create a socket
     setSocketOption sock ReuseAddr 1 -- Set socket reuse on
-    bind sock (SockAddrInet 18000 0) -- Bind socket to port 10000
+    bind sock (SockAddrInet 14000 0) -- Bind socket to port 10000
     listen sock 2 -- Listen for connections
     serverLoop sock
 
