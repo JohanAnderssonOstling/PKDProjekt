@@ -1,27 +1,19 @@
-module ParseInput(parseInput) where
+module ParseInput where
 
-import System.Exit --in case it's needed
+import Network.Socket
+import System.IO
+import Server
+import qualified Data.Map as Map
 
+isCommand :: String -> ClientState -> ClientState
+isCommand string clientState
+ | head string == '/' = commands (words string) clientState --input is a command
+ | otherwise = clientState --input is not a command
 
-
-
-
-
-
-parseInput :: String -> IO ()
-parseInput input
- | (head input) == '/' = commands (tail input) --input is a command
- | otherwise = do                              --input is a text message
-    putStrLn input
-    newInput <- getLine
-    parseInput newInput
- 
-
-
-commands :: String -> IO ()
-commands "quit" = undefined          --leave server
-commands "mute username" = undefined --mutes a certain user
-commands _ = undefined               --unknown command error
+commands :: [String] -> ClientState -> ClientState
+commands ["/quit"] ClientState {quit=False,muted=x} = ClientState {quit=True,muted=x} --client quits server
+commands ["/mute",username] (ClientState {quit=x,muted=mUsers}) = ClientState {quit=x, muted=(Map.insert username True mUsers)} --mutes specified username
+commands _ clientState = clientState
 
 
 

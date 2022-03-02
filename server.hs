@@ -8,7 +8,12 @@ import Data.Map (Map)
 import qualified Data.Map       as Map
 type Username = String
 type UserPassword = String
+type Msg = (Username, String)
 
+data ClientState = ClientState {
+    quit :: Bool,
+    muted :: Map Username Bool
+}
 
 main :: IO ()
 main = do
@@ -30,8 +35,10 @@ serverLoop socket chan = do
 
 handleClient :: (Socket, socketAddr) -> Chan String -> IO ()
 handleClient (socket, _) chan = do
-    putStrLn "Client connected"
+    
     handle <- socketToHandle socket ReadWriteMode -- Create a sockethandle for client communication
+    username <- hGetLine handle
+    password <- hGetLine handle
     forkIO (outLoop handle chan)
     inLoop handle chan
     hClose handle
