@@ -1,10 +1,10 @@
 module Client where
 import System.IO
 import Network.Socket
-
+import Control.Concurrent
 main :: IO ()
 main = do
-    connectToServer "127.0.0.1" 14000
+    connectToServer "127.0.0.1" 18000
 
 connectToServer :: String -> Int -> IO ()
 connectToServer host port = do
@@ -18,11 +18,19 @@ connectToServer host port = do
 sendEcho :: Socket -> IO ()
 sendEcho socket = do
     handle <- socketToHandle socket ReadWriteMode
-    line <- hGetLine handle
-    putStrLn line
-    hPutStrLn handle "Hello from client"
-    line <- hGetLine handle
-    putStrLn line
+    forkIO (inLoop handle)
+    outLoop handle
     hClose handle
     close socket
 
+inLoop :: Handle -> IO ()
+inLoop handle = do
+    inLine <- hGetLine handle
+    putStrLn inLine
+    inLoop handle
+
+outLoop :: Handle -> IO ()
+outLoop handle = do
+    outLine <- getLine
+    hPutStrLn handle outLine
+    outLoop handle

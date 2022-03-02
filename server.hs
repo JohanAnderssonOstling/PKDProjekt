@@ -1,32 +1,53 @@
 module Server where
 import System.IO
 import Control.Concurrent
+import Control.Concurrent.STM
+import Control.Concurrent.Chan
 import Network.Socket
+import Data.Map (Map)
+import qualified Data.Map       as Map
+type Username = String
+type UserPassword = String
 
 
 main :: IO ()
 main = do
+    newTVarIO Map.empty
     putStrLn "Creating socket"
     sock <- socket AF_INET Stream 0 -- Create a socket
     setSocketOption sock ReuseAddr 1 -- Set socket reuse on
-    bind sock (SockAddrInet 14000 0) -- Bind socket to port 10000
+    bind sock (SockAddrInet 18000 0) -- Bind socket to port 10000
     listen sock 2 -- Listen for connections
-    serverLoop sock
+    chan <- newChan
+    serverLoop sock chan
+    close sock
 
-serverLoop :: Socket -> IO ()
-serverLoop socket = do
-    putStrLn "Accepting clients"
+serverLoop :: Socket -> Chan String -> IO ()
+serverLoop socket chan = do
     connection <- accept socket
-    forkIO (handleClient connection) -- Create a new thread for the accepted client
-    serverLoop socket
+    forkIO (handleClient connection chan) -- Create a new thread for the accepted client
+    serverLoop socket chan
 
-handleClient :: (Socket, socketAddr) -> IO ()
-handleClient (socket, _) = do
+handleClient :: (Socket, socketAddr) -> Chan String -> IO ()
+handleClient (socket, _) chan = do
     putStrLn "Client connected"
     handle <- socketToHandle socket ReadWriteMode -- Create a sockethandle for client communication
-    hPutStrLn handle "Hello World!" -- Send a message to the client
-    line <- hGetLine handle -- Get message from client
-    putStrLn ("Message from client: " ++ line)
-    hPutStrLn handle ("Echo: " ++ line)
+    forkIO (outLoop handle chan)
+    inLoop handle chan
     hClose handle
     close socket
+
+inLoop :: Handle -> Chan String -> IO ()
+inLoop handle chan = do
+    inLine <- hGetLine handle
+    putStrLn inLine
+    writeChan chan inLine
+    inLoop handle chan
+
+outLoop :: Handle -> Chan String -> IO ()
+outLoop handle chan = do
+    
+    broadChan <- dupChan chan
+    outLine <- readChan broadChan
+    hPutStrLn handle ("Output:" ++ outLine)
+    outLoop handle chan
