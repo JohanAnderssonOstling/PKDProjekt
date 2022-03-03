@@ -25,7 +25,7 @@ commands ["/quit"] (ClientState {username=u,quit=False,muted=m}) =
 commands ["/mute",username] (ClientState {username=u,quit=x,muted=mUsers}) = 
     ("Muted " ++ username, 
     ClientState {username=u, quit=x, muted=(Map.insert username True mUsers)}) --mutes specified username
-comands ["/unmute",username] (ClientState {username=u,quit=x,muted=mUsers}) =
+commands ["/unmute",username] (ClientState {username=u,quit=x,muted=mUsers}) =
     ("unmuted" ++ username,
     ClientState {username=u, quit=x, muted=(Map.insert username False mUsers)}) --unmutes specified username
 commands _ clientState = ("Unknown command",clientState)
