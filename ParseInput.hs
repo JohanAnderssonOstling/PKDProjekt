@@ -2,6 +2,7 @@ module ParseInput where
 
 import Network.Socket
 import System.IO
+import Data.List
 import Data.Map (Map)
 import qualified Data.Map as Map
 type Username = String
@@ -14,33 +15,44 @@ data ClientState = ClientState {
 } deriving (Show)
 
 data ServerState = ServerState {
-   users :: [String]
-}
+   users :: [Username]
+} deriving (Show)
 
 
-isCommand :: String -> ClientState -> Maybe (String, ClientState)
-isCommand string clientState
- | head string == '/' = Just (commands (words string) clientState) --input is a command
+isCommand :: String -> ClientState -> ServerState -> Maybe (String, ClientState, ServerState)
+isCommand string clientState serverState
+ | head string == '/' = Just (commands (words string) clientState serverState) --input is a command
  | otherwise = Nothing --input is not a command
 
 
-commands :: [String] -> ClientState -> (String, ClientState)
-commands ["/quit"] (ClientState {username=u,quit=False,muted=m}) = 
+commands :: [String] -> ClientState -> ServerState -> (String, ClientState, ServerState)
+commands ["/quit"] (ClientState {username=u,quit=False,muted=m}) serverState = 
     ("disconnecting", 
-    ClientState {username=u,quit=True,muted=m}) --client quits server
-commands ["/mute",username] (ClientState {username=u,quit=q,muted=mUsers}) = 
+    ClientState {username=u,quit=True,muted=m},
+    serverState) --client quits server
+commands ["/mute",username] (ClientState {username=u,quit=q,muted=mutedUsers}) serverState = 
     ("Muted " ++ username, 
-    ClientState {username=u, quit=q, muted=(Map.insert username True mUsers)}) --mutes specified username
-commands ["/unmute",username] (ClientState {username=u,quit=q,muted=mUsers}) =
+    ClientState {username=u, quit=q, muted=(Map.insert username True mutedUsers)},
+    serverState) --mutes specified username
+commands ["/unmute",username] (ClientState {username=u,quit=q,muted=mutedUsers}) serverState =
     ("unmuted" ++ username,
-    ClientState {username=u, quit=q, muted=(Map.insert username False mUsers)}) --unmutes specified username
-commands ["/muted"] (ClientState {username=u,quit=q,muted=mUsers})
- | Map.filter (== True) mUsers == Map.empty = ("No muted users", ClientState {username=u,quit=q,muted=mUsers})
+    ClientState {username=u, quit=q, muted=(Map.insert username False mutedUsers)},
+    serverState) --unmutes specified username
+commands ["/muted"] (ClientState {username=u,quit=q,muted=mutedUsers}) serverState
+ | Map.filter (== True) mutedUsers == Map.empty = 
+    ("No muted users", 
+    ClientState {username=u,quit=q,muted=mutedUsers},
+    serverState)
  | otherwise =
-    ((concat $ Map.keys (Map.filter (== True) mUsers)),
-    ClientState {username=u,quit=q,muted=mUsers}) --displays a list of all muted users
-commands ["/commands"] clientState = ("/quit, /mute user, /unmute user, /muted", clientState) --displays a list of available commands
-commands _ clientState = ("Unknown command",clientState)
+    ((intercalate ", " (Map.keys (Map.filter (== True) mutedUsers))),
+    ClientState {username=u,quit=q,muted=mutedUsers},
+    serverState) --displays a list of all muted users
+commands ["/users"] clientState serverState = 
+    ((intercalate ", " $ users serverState),
+    clientState,
+    serverState)
+commands ["/commands"] clientState serverState = ("/quit, /mute user, /unmute user, /muted, /users", clientState, serverState) --displays a list of available commands
+commands _ clientState serverState = ("Unknown command", clientState, serverState)
 
 
 
