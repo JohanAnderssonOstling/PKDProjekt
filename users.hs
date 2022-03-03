@@ -1,5 +1,4 @@
 import System.IO
-import Data.Text
 
 data User = User {
       username :: String
