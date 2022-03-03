@@ -1,12 +1,13 @@
 import System.IO
+import Test.HUnit
 
 data User = User {
       username :: String
     , password :: String
-    } deriving (Show)
+    } deriving (Show, Eq)
 
 serializeUsers :: [User] -> String 
-serializeUsers users = Prelude.foldl getUser "" users
+serializeUsers users = foldl getUser "" users
 
 getUser :: String -> User -> String
 getUser acc (User username password) = acc ++ username ++ " " ++ password ++ "\n"
@@ -21,14 +22,14 @@ writeUsers users = do
 
 userList :: [String] -> [User]
 userList [] = []
-userList (x:xs) = [User (Prelude.head (Prelude.words x)) (Prelude.last (Prelude.words x))] ++ userList xs
+userList (x:xs) = [User (head (words x)) (last (words x))] ++ userList xs
 
 readUsers :: IO [User]
 readUsers = do 
     content <- readFile "users.txt"
-    let forceClose = (Prelude.length content)
+    let forceClose = (length content)
     putStrLn ("force close" ++ (show forceClose)) -- fix later
-    let users = (userList (Prelude.lines content))
+    let users = (userList (lines content))
     return users
 
 ------------------------
@@ -52,4 +53,21 @@ removeUser username = do
     writeUsers (removeUser' username currentUsers [])
     putStrLn ("User \"" ++ username ++ "\" successfully removed")
 
+clearUsers = do
+    writeFile "users.txt" ""
+    putStrLn "All users cleared successfully"
+
+
+------------------------- test cases
+
+addAndReadUser name pass = do
+    addUser name pass
+    users <- readUsers
+    return users
+
+test1 = TestCase $ do 
+    currentUsers <- readUsers
+    let y = currentUsers ++ [User "user1" "pass1"]
+    x <- addAndReadUser "user1" "pass1"
+    assertEqual "user did not att successfully" x y
 
