@@ -33,11 +33,12 @@ readUsers :: IO UserMap
 readUsers = do 
     content <- readFile "users.txt"
     let forceClose = (length content)
-    putStrLn ("force close" ++ (show forceClose)) -- fix later
+    putStrLn ("----------------------------------" ++ (show forceClose) ++ "") -- fix later
     let users = (createUserMap (lines content) Map.empty)
     return users
 
 ------------------------
+
 
 addUser :: Username -> Password -> IO ()
 addUser username password = do
@@ -58,7 +59,13 @@ clearUsers = do
     putStrLn "All users cleared successfully"
 
 
-------------------------- test cases
+getPassword :: Username -> IO (Maybe Password)
+getPassword user = do
+    currentUsers <- readUsers
+    return (Map.lookup user currentUsers)
+
+
+------------------------- test cases (need to get updated)
 
 addAndReadUser name pass = do
     addUser name pass
@@ -84,9 +91,11 @@ testRemoveUser = TestCase $ do
 
 -- this will clear all users
 testClearUsers = TestCase $ do 
+    usersBeforeClearing <- readUsers
     clearUsers
     users <- readUsers
     assertEqual "error when clearing" Map.empty users
+    writeUsers usersBeforeClearing -- restores the users.txt file to the state it was before the test
 
 tests = TestList [TestLabel "testAddUser" testAddUser, TestLabel "testRemoveUser" testRemoveUser, TestLabel "testClearUsers" testClearUsers] 
 
