@@ -6,13 +6,15 @@ data User = User {
     , password :: String
     } deriving (Show, Eq)
 
-serializeUsers :: [User] -> String 
+type UserList = [User]
+
+serializeUsers :: UserList -> String 
 serializeUsers users = foldl getUser "" users
 
 getUser :: String -> User -> String
 getUser acc (User username password) = acc ++ username ++ " " ++ password ++ "\n"
 
-writeUsers :: [User] -> IO ()
+writeUsers :: UserList -> IO ()
 writeUsers users = do
     file <- openFile "users.txt" WriteMode
     hPutStr file (serializeUsers users)
@@ -20,16 +22,16 @@ writeUsers users = do
 
 --------------------------
 
-userList :: [String] -> [User]
-userList [] = []
-userList (x:xs) = [User (head (words x)) (last (words x))] ++ userList xs
+createUserList :: [String] -> UserList
+createUserList [] = []
+createUserList (x:xs) = [User (head (words x)) (last (words x))] ++ createUserList xs
 
-readUsers :: IO [User]
+readUsers :: IO UserList
 readUsers = do 
     content <- readFile "users.txt"
     let forceClose = (length content)
     putStrLn ("force close" ++ (show forceClose)) -- fix later
-    let users = (userList (lines content))
+    let users = (createUserList (lines content))
     return users
 
 ------------------------
@@ -41,7 +43,7 @@ addUser username password = do
     putStrLn ("User \"" ++ username ++ "\" successfully added")
 
 
-removeUser' :: String -> [User] -> [User] -> [User]
+removeUser' :: String -> UserList -> UserList -> UserList
 removeUser' _ [] acc = acc
 removeUser' target ((User name pass):xs) acc
     | name == target = removeUser' target xs acc
@@ -90,3 +92,6 @@ testClearUsers = TestCase $ do
     assertEqual "error when clearing" [] users
 
 tests = TestList [TestLabel "testAddUser" testAddUser, TestLabel "testRemoveUser" testRemoveUser, TestLabel "testClearUsers" testClearUsers] 
+
+-- use this wrapper to run the tests
+runTests = runTestTT tests
