@@ -8,7 +8,8 @@ import Data.Map (Map)
 import qualified Data.Map       as Map
 import System.Environment 
 import ParseInput
-
+import Types
+import Users
 data Msg = Msg {
     sender :: Username,
     reciever :: Username,

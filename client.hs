@@ -9,55 +9,55 @@ main = do
     ip <- getLine
     putStrLn "Enter port"
     port <- getLine
-    connectToServer ip port
+    (socket, handle) <- connectToServer ip port
+    putStrLn "Enter username"
+    username <- getLine
+    putStrLn "Enter password"
+    password <- getLine
+    response <- login handle username password
+    if (response) == "1"
+        then do
+            forkID <- forkIO (userInputLoop handle)
+            serverInputLoop handle
+            hClose handle
+        else do
+            close socket
+            main
+    
+    close socket
     main
 
-connectToServer :: String -> String -> IO ()
 connectToServer host port = do
     putStrLn ("Connecting to host: " ++ host ++ " on port: " ++ port)
     addrInfo <- getAddrInfo Nothing (Just host) (Just port)
     let serverAddr = head addrInfo
     socket <- socket (addrFamily serverAddr) Stream defaultProtocol --Create client socket
     connect socket (addrAddress serverAddr) --Connect socket to server
-    userInfo <- getUserInfo
-    sendEcho socket userInfo
-
-
---getUserInfo :: IO -> (String, String)
-getUserInfo = do
-    putStrLn "Enter username"
-    username <- getLine
-    putStrLn "Enter password"
-    password <- getLine
-    return (username, password)
-
-sendEcho :: Socket -> (String, String) -> IO ()
-sendEcho socket (username, password) = do
     handle <- socketToHandle socket ReadWriteMode
+    return (socket, handle)
+
+
+--login :: Socket -> Handle -> (String, String) -> String
+login handle username password = do
     
     hPutStrLn handle username
     hPutStrLn handle password
+    --response <- hGetLine handle
     response <- hGetLine handle
-    putStrLn response
-    forkID <- forkIO (outLoop handle)
-    inLoop handle
-    killThread forkID
-    hClose handle
-    close socket
+    return response
+    
 
-inLoop :: Handle -> IO ()
-inLoop handle = do
+serverInputLoop :: Handle -> IO ()
+serverInputLoop handle = do
     inLine <- hGetLine handle
     if inLine == "disconnect"
         then do
             putStrLn "Disconnected from server"
         else do
             putStrLn inLine
-            inLoop handle
+            serverInputLoop handle
 
-outLoop :: Handle -> IO ()
-outLoop handle = do
-    outLine <- getLine
-
-    hPutStrLn handle outLine
-    outLoop handle
+userInputLoop handle = do
+    userInput <- getLine
+    hPutStrLn handle userInput
+    userInputLoop handle
