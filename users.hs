@@ -53,6 +53,7 @@ removeUser username = do
     writeUsers (removeUser' username currentUsers [])
     putStrLn ("User \"" ++ username ++ "\" successfully removed")
 
+clearUsers :: IO ()
 clearUsers = do
     writeFile "users.txt" ""
     putStrLn "All users cleared successfully"
@@ -65,9 +66,27 @@ addAndReadUser name pass = do
     users <- readUsers
     return users
 
-test1 = TestCase $ do 
+removeAndReadUser name = do
+    removeUser name
+    users <- readUsers
+    return users
+
+testAddUser = TestCase $ do 
     currentUsers <- readUsers
     let y = currentUsers ++ [User "user1" "pass1"]
     x <- addAndReadUser "user1" "pass1"
-    assertEqual "user did not att successfully" x y
+    assertEqual "error when adding" x y
 
+testRemoveUser = TestCase $ do 
+    currentUsers <- readUsers
+    addUser "user2" "pass2"
+    x <- removeAndReadUser "user2"
+    assertEqual "error when removing" x currentUsers
+
+-- this will clear all users
+testClearUsers = TestCase $ do 
+    clearUsers
+    users <- readUsers
+    assertEqual "error when clearing" [] users
+
+tests = TestList [TestLabel "testAddUser" testAddUser, TestLabel "testRemoveUser" testRemoveUser, TestLabel "testClearUsers" testClearUsers] 
