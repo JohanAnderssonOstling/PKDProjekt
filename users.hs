@@ -22,19 +22,19 @@ writeUsers users = do
 
 --------------------------
 
-createUserList :: [String] -> UserMap -> UserMap
-createUserList [] map = map
-createUserList (x:xs) map = 
+createUserMap :: [String] -> UserMap -> UserMap
+createUserMap [] map = map
+createUserMap (x:xs) map = 
     let (name,pass) = (head (words x),last (words x)) 
     in 
-        createUserList xs (Map.insert name pass map)
+        createUserMap xs (Map.insert name pass map)
 
 readUsers :: IO UserMap
 readUsers = do 
     content <- readFile "users.txt"
     let forceClose = (length content)
     putStrLn ("force close" ++ (show forceClose)) -- fix later
-    let users = (createUserList (lines content) Map.empty)
+    let users = (createUserMap (lines content) Map.empty)
     return users
 
 ------------------------
