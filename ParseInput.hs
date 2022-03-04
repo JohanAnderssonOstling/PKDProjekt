@@ -5,8 +5,7 @@ import System.IO
 import Data.List
 import Data.Map (Map)
 import qualified Data.Map as Map
-type Username = String
-type UserPassword = String
+import Types
 
 data ClientState = ClientState {
     username :: Username,
