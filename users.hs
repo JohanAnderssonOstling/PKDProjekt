@@ -58,37 +58,37 @@ clearUsers = do
     putStrLn "All users cleared successfully"
 
 
--- ------------------------- test cases (need to get updated)
+------------------------- test cases
 
--- addAndReadUser name pass = do
---     addUser name pass
---     users <- readUsers
---     return users
+addAndReadUser name pass = do
+    addUser name pass
+    users <- readUsers
+    return users
 
--- removeAndReadUser name = do
---     removeUser name
---     users <- readUsers
---     return users
+removeAndReadUser name = do
+    removeUser name
+    users <- readUsers
+    return users
 
--- testAddUser = TestCase $ do 
---     currentUsers <- readUsers
---     let y = currentUsers ++ [User "user1" "pass1"]
---     x <- addAndReadUser "user1" "pass1"
---     assertEqual "error when adding" x y
+testAddUser = TestCase $ do 
+    currentUsers <- readUsers
+    let y = Map.insert "user1" "pass1" currentUsers
+    x <- addAndReadUser "user1" "pass1"
+    assertEqual "error when adding" x y
 
--- testRemoveUser = TestCase $ do 
---     currentUsers <- readUsers
---     addUser "user2" "pass2"
---     x <- removeAndReadUser "user2"
---     assertEqual "error when removing" x currentUsers
+testRemoveUser = TestCase $ do 
+    currentUsers <- readUsers
+    addUser "user2" "pass2"
+    x <- removeAndReadUser "user2"
+    assertEqual "error when removing" x currentUsers
 
--- -- this will clear all users
--- testClearUsers = TestCase $ do 
---     clearUsers
---     users <- readUsers
---     assertEqual "error when clearing" [] users
+-- this will clear all users
+testClearUsers = TestCase $ do 
+    clearUsers
+    users <- readUsers
+    assertEqual "error when clearing" Map.empty users
 
--- tests = TestList [TestLabel "testAddUser" testAddUser, TestLabel "testRemoveUser" testRemoveUser, TestLabel "testClearUsers" testClearUsers] 
+tests = TestList [TestLabel "testAddUser" testAddUser, TestLabel "testRemoveUser" testRemoveUser, TestLabel "testClearUsers" testClearUsers] 
 
--- -- use this wrapper to run the tests
--- runTests = runTestTT tests
+-- use this wrapper to run the tests
+runTests = runTestTT tests
