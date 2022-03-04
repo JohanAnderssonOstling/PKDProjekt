@@ -8,13 +8,12 @@ import Data.Map (Map)
 import qualified Data.Map       as Map
 import System.Environment 
 import ParseInput
-
+import Users
 data Msg = Msg {
     sender :: Username,
     reciever :: Username,
     content :: String
 }
-
 
 
 main :: IO ()
@@ -31,17 +30,19 @@ startServer port = do
     bind sock (SockAddrInet (read port :: PortNumber) 0) -- Bind socket to port 10000
     listen sock 2 -- Listen for connections
     msgChan <- newChan
-    serverLoop sock msgChan
+    serverStateMVar <- newEmptyMVar
+    putMVar serverStateMVar (ServerState [])
+    serverLoop sock msgChan serverStateMVar
     close sock
 
-serverLoop :: Socket -> Chan Msg -> IO ()
-serverLoop socket msgChan = do
+serverLoop :: Socket -> Chan Msg -> MVar ServerState -> IO ()
+serverLoop socket msgChan serverStateMVar = do
     connection <- accept socket
-    forkIO (handleClient connection msgChan) -- Create a new thread for the accepted client
-    serverLoop socket msgChan
+    forkIO (handleClient connection msgChan serverStateMVar) -- Create a new thread for the accepted client
+    serverLoop socket msgChan serverStateMVar
 
-handleClient :: (Socket, socketAddr) -> Chan Msg -> IO ()
-handleClient (socket, _) msgChan = do
+handleClient :: (Socket, socketAddr) -> Chan Msg -> MVar ServerState -> IO ()
+handleClient (socket, _) msgChan serverStateMVar = do
     
     handle <- socketToHandle socket ReadWriteMode -- Create a sockethandle for client communication
     username <- hGetLine handle
@@ -49,38 +50,44 @@ handleClient (socket, _) msgChan = do
     hPutStrLn handle "Login successfull"
     clientStateMVar <- newEmptyMVar
     putMVar clientStateMVar (ClientState username False Map.empty)
-    forkIO (outLoop handle clientStateMVar msgChan)
-    inLoop handle clientStateMVar msgChan
+    forkIO (outLoop handle msgChan clientStateMVar )
+    inLoop handle msgChan serverStateMVar clientStateMVar
     hClose handle
     close socket
 
-inLoop :: Handle -> MVar ClientState -> Chan Msg -> IO ()
-inLoop handle clientStateMVar msgChan = do
+inLoop :: Handle -> Chan Msg -> MVar ServerState -> MVar ClientState -> IO ()
+inLoop handle  msgChan serverStateMVar clientStateMVar= do
     inLine <- hGetLine handle
     clientState <- readMVar clientStateMVar
+    serverState <- readMVar serverStateMVar
     putStrLn inLine
-    case isCommand inLine clientState of
+    case isCommand inLine clientState serverState of
         Nothing -> do 
             writeChan msgChan (Msg (username clientState) "" inLine)
         Just commandReturn -> do
-            hPutStrLn handle (fst commandReturn)
-            putMVar clientStateMVar (snd commandReturn)
+            hPutStrLn handle (Server.fst commandReturn)
+            putMVar clientStateMVar (Server.snd commandReturn)
+            putMVar serverStateMVar (thrd commandReturn)
     clientState <- readMVar clientStateMVar 
     if quit clientState
     then
         return ()
-    else inLoop handle clientStateMVar msgChan
+    else inLoop handle msgChan serverStateMVar clientStateMVar
 
 
-outLoop :: Handle -> MVar ClientState -> Chan Msg -> IO ()
-outLoop handle clientStateMVar msgChan = do
+outLoop :: Handle -> Chan Msg -> MVar ClientState -> IO ()
+outLoop handle msgChan clientStateMVar = do
     
     broadChan <- dupChan msgChan
     recievedMsg <- readChan broadChan
-    hPutStrLn handle (sender recievedMsg ++ ": " ++ content recievedMsg)
     clientState <- readMVar clientStateMVar
+    hPutStrLn handle (sender recievedMsg ++ ": " ++ content recievedMsg)
+    
     if quit clientState
     then
         return()
-    else outLoop handle clientStateMVar msgChan
-    
+    else outLoop handle msgChan clientStateMVar 
+
+fst (a,b, c) = a
+snd (a, b, c) = b
+thrd (a,b,c) = c
