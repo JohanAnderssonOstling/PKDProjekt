@@ -1,3 +1,5 @@
+module Users where
+    
 import System.IO
 import Test.HUnit
 
