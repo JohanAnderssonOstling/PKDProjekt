@@ -33,14 +33,23 @@ commands ["/quit"] (ClientState {username=u,quit=False,muted=m}) serverState =
     ("disconnecting", 
     ClientState {username=u,quit=True,muted=m},
     serverState) --client quits server
-commands ["/mute",username] (ClientState {username=u,quit=q,muted=mutedUsers}) serverState = 
+commands ["/mute",username] (ClientState {username=u,quit=q,muted=mutedUsers}) serverState
+ | Set.member username (onlineUsers serverState) == True = 
     ("Muted " ++ username, 
     ClientState {username=u, quit=q, muted=Set.insert username mutedUsers},
     serverState) --mutes specified username
-commands ["/unmute",username] (ClientState {username=u,quit=q,muted=mutedUsers}) serverState =
+ | otherwise = ("User not found",
+ (ClientState {username=u,quit=q,muted=mutedUsers}),
+ serverState) --user is not on the server
+commands ["/unmute",username] (ClientState {username=u,quit=q,muted=mutedUsers}) serverState 
+ | Set.member username mutedUsers == True =
     ("unmuted" ++ username,
     ClientState {username=u, quit=q, muted=(Set.delete username mutedUsers)},
     serverState) --unmutes specified username
+ | otherwise = 
+     ("User is not muted",
+     (ClientState {username=u,quit=q,muted=mutedUsers}),
+     serverState)
 commands ["/muted"] (ClientState {username=u,quit=q,muted=mutedUsers}) serverState
  | mutedUsers == Set.empty = 
     ("No muted users", 
@@ -59,7 +68,8 @@ commands _ clientState serverState = ("Unknown command", clientState, serverStat
 
 
 
-
+--Lägg till dokumentation till funktionerna
+--Lägg till ett fall i mute och unmute ifall användaren man försöker muta inte finns
 
 
 
