@@ -65,7 +65,7 @@ getPassword user = do
     return (Map.lookup user currentUsers)
 
 
-------------------------- test cases (need to get updated)
+------------------------- test cases
 
 addAndReadUser name pass = do
     addUser name pass
