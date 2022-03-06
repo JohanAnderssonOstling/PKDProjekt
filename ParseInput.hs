@@ -25,7 +25,7 @@ data ClientState = ClientState {
   onlineUsers = a set of usernames of users currently online on the server
 -}
 data ServerState = ServerState {
-   users :: Map Username Password,
+   users :: UserMap,
    onlineUsers :: Set Username
 } deriving (Show,Eq) --for testing
 
