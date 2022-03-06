@@ -43,19 +43,19 @@ serverLoop socket msgChan serverStateMVar = do
     forkIO (handleClient connection msgChan serverStateMVar) -- Create a new thread for the accepted client
     serverLoop socket msgChan serverStateMVar
 
-login handle = do 
-    username <- hGetLine handle
-    password <- hGetLine handle
-    case getPassword username of
-        Nothing -> do 
-            addUser username password
-            return username
-        Just userPassword -> do
-            if userPassword == password
-                then
-                    username
-            else
-                Nothing
+--login handle = do 
+  --  username <- hGetLine handle
+    --password <- hGetLine handle
+    --case getPassword username of
+      --  Nothing -> do 
+        --    addUser username password
+         --   return username
+        --Just userPassword -> do
+          --  if userPassword == password
+            --    then
+              --      username
+            --else
+              --  Nothing
 
 
 handleClient :: (Socket, socketAddr) -> Chan Msg -> MVar ServerState -> IO ()
@@ -64,7 +64,7 @@ handleClient (socket, _) msgChan serverStateMVar = do
     handle <- socketToHandle socket ReadWriteMode -- Create a sockethandle for client communication
     username <- hGetLine handle
     password <- hGetLine handle
-    hPutStrLn "1"
+    hPutStrLn handle "1"
             
     clientStateMVar <- newEmptyMVar
     putMVar clientStateMVar (ClientState username False Set.empty)
