@@ -3,10 +3,7 @@ module Users where
 import System.IO
 import Test.HUnit
 import qualified Data.Map as Map
-
-type Username = String
-type Password = String
-type UserMap = Map.Map Username Password
+import Types
 
 serializeUsers :: UserMap -> String 
 serializeUsers users = Map.foldlWithKey getUser "" users
