@@ -10,6 +10,7 @@ import System.Environment
 import ParseInput
 import Types
 import Users
+import Data.Set as Set
 data Msg = Msg {
     sender :: Username,
     reciever :: Username,
@@ -30,9 +31,9 @@ startServer port = do
     --setSocketOption sock ReuseAddr 0 -- Set socket reuse off
     bind sock (SockAddrInet (read port :: PortNumber) 0) -- Bind socket to port 10000
     listen sock 2 -- Listen for connections
-    msgChan <- newChan
+    msgChan <- newChan 
     serverStateMVar <- newEmptyMVar
-    putMVar serverStateMVar (ServerState [])
+    putMVar serverStateMVar (ServerState Map.empty Set.empty)
     serverLoop sock msgChan serverStateMVar
     close sock
 
@@ -63,10 +64,10 @@ handleClient (socket, _) msgChan serverStateMVar = do
     handle <- socketToHandle socket ReadWriteMode -- Create a sockethandle for client communication
     username <- hGetLine handle
     password <- hGetLine handle
-    
+    hPutStrLn "1"
             
     clientStateMVar <- newEmptyMVar
-    putMVar clientStateMVar (ClientState username False Map.empty)
+    putMVar clientStateMVar (ClientState username False Set.empty)
     forkIO (outLoop handle msgChan clientStateMVar )
     inLoop handle msgChan serverStateMVar clientStateMVar
     hClose handle
