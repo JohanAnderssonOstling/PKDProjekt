@@ -1,12 +1,13 @@
 module ParseInput where
 
+import Types
+import Test.HUnit
 import Data.List
 import Data.Set (Set)
 import qualified Data.Set as Set
 import Data.Map (Map)
 import qualified Data.Map as Map
-type Username = String
-type UserPassword = String
+
 
 {-ClientState
   username = the clients username
@@ -17,16 +18,17 @@ data ClientState = ClientState {
     username :: Username,
     quit :: Bool,
     muted :: Set Username
-} deriving (Show)
+} deriving (Show,Eq) --for testing
 
 {-ServerState
   users = a map of usernames and passwords of the clients registered on the server
   onlineUsers = a set of usernames of users currently online on the server
 -}
 data ServerState = ServerState {
-   users :: Map Username UserPassword,
+   users :: Map Username Password,
    onlineUsers :: Set Username
-} deriving (Show)
+} deriving (Show,Eq) --for testing
+
 
 {-isCommand
   Checks if input string is a command and calls commands if true
@@ -46,7 +48,7 @@ isCommand string clientState serverState
 -}
 commands :: [String] -> ClientState -> ServerState -> (String, ClientState, ServerState)
 commands ["/quit"] (ClientState {username=u,quit=False,muted=m}) serverState = 
-    ("disconnecting", 
+    ("Disconnecting", 
     ClientState {username=u,quit=True,muted=m},
     serverState) --client quits server
 commands ["/mute",username] (ClientState {username=u,quit=q,muted=mutedUsers}) serverState
@@ -59,7 +61,7 @@ commands ["/mute",username] (ClientState {username=u,quit=q,muted=mutedUsers}) s
  serverState) --user is not on the server
 commands ["/unmute",username] (ClientState {username=u,quit=q,muted=mutedUsers}) serverState 
  | Set.member username mutedUsers == True =
-    ("unmuted " ++ username,
+    ("Unmuted " ++ username,
     ClientState {username=u, quit=q, muted=(Set.delete username mutedUsers)},
     serverState) --unmutes specified username
  | otherwise = 
@@ -82,3 +84,34 @@ commands ["/users"] clientState serverState =
 commands ["/commands"] clientState serverState = ("/quit, /mute user, /unmute user, /muted, /users", clientState, serverState) --displays a list of available commands
 commands _ clientState serverState = ("Unknown command", clientState, serverState) --unknown command
 
+
+
+
+
+
+
+
+
+
+
+
+
+-------------Testing-------------
+
+
+--quit command
+testQuit = TestCase $ assertEqual "For /quit" (Just ("Disconnecting",(ClientState {username="friend",quit=True,muted=Set.empty }), (ServerState {users=Map.fromList [("mate","123"),("buddy","qwerty"),("friend","zxc")],onlineUsers=Set.fromList ["friend","mate","buddy"]}))) (isCommand "/quit" (ClientState {username="friend",quit=False,muted=Set.empty }) (ServerState {users=Map.fromList [("mate","123"),("buddy","qwerty"),("friend","zxc")],onlineUsers=Set.fromList ["friend","mate","buddy"]}))
+
+--mute command
+testMute = TestCase $ assertEqual "For /mute" (Just ("Muted mate",(ClientState {username="friend",quit=False,muted=Set.fromList ["mate"] }), (ServerState {users=Map.fromList [("mate","123"),("buddy","qwerty"),("friend","zxc")],onlineUsers=Set.fromList ["friend","mate","buddy"]}))) (isCommand "/mute mate" (ClientState {username="friend",quit=False,muted=Set.empty }) (ServerState {users=Map.fromList [("mate","123"),("buddy","qwerty"),("friend","zxc")],onlineUsers=Set.fromList ["friend","mate","buddy"]}))
+
+--unmute command
+testUnmute = TestCase $ assertEqual "For /unmute" (Just ("Unmuted mate",(ClientState {username="friend",quit=False,muted=Set.empty }), (ServerState {users=Map.fromList [("mate","123"),("buddy","qwerty"),("friend","zxc")],onlineUsers=Set.fromList ["friend","mate","buddy"]}))) (isCommand "/unmute mate" (ClientState {username="friend",quit=False,muted=Set.fromList ["mate"] }) (ServerState {users=Map.fromList [("mate","123"),("buddy","qwerty"),("friend","zxc")],onlineUsers=Set.fromList ["friend","mate","buddy"]}))
+
+--users command
+testUsers = TestCase $ assertEqual "For /users" (Just ("buddy, friend, mate",(ClientState {username="friend",quit=False,muted=Set.empty }), (ServerState {users=Map.fromList [("mate","123"),("buddy","qwerty"),("friend","zxc")],onlineUsers=Set.fromList ["friend","mate","buddy"]}))) (isCommand "/users" (ClientState {username="friend",quit=False,muted=Set.empty }) (ServerState {users=Map.fromList [("mate","123"),("buddy","qwerty"),("friend","zxc")],onlineUsers=Set.fromList ["friend","mate","buddy"]}))
+
+
+
+--run all tests
+runtests = runTestTT $ TestList [testQuit,testMute,testUnmute,testUsers]
