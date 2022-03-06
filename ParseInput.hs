@@ -1,7 +1,5 @@
 module ParseInput where
 
-import Network.Socket
-import System.IO
 import Data.List
 import Data.Set (Set)
 import qualified Data.Set as Set
@@ -31,7 +29,7 @@ data ServerState = ServerState {
 } deriving (Show)
 
 {-isCommand
-  checks if input string is a command and calls commands if true
+  Checks if input string is a command and calls commands if true
   RETURNS: Maybe (String, ClientState, ServerState)
   EXAMPLES: isCommand "/quit" ClientState {username="friend",quit=False,muted=Set.fromList ["mate","buddy"] } ServerState {users=Map.fromList [("mate","123"),("buddy","qwerty"),("friend","zxc")],onlineUsers=Set.fromList ["friend","mate","buddy"]} == Just ("disconnecting",ClientState {username = "emil", quit = True, muted = fromList ["buddy","mate"]},ServerState {users = fromList [("buddy","qwerty"),("emil","zxc"),("mate","123")], onlineUsers = fromList ["buddy","emil","mate"]})
             isCommand "hello" = Nothing
@@ -44,6 +42,7 @@ isCommand string clientState serverState
 {-commands
   Modifies clientstate and serverstate depending on the strings in the list
   RETURNS: (String, ClientState, ServerState)
+  EXAMPLES:commands ["/quit"] ClientState {username="friend",quit=False,muted=Set.fromList ["mate","buddy"] } ServerState {users=Map.fromList [("mate","123"),("buddy","qwerty"),("friend","zxc")],onlineUsers=Set.fromList ["friend","mate","buddy"]} == ("disconnecting",ClientState {username = "emil", quit = True, muted = fromList ["buddy","mate"]},ServerState {users = fromList [("buddy","qwerty"),("emil","zxc"),("mate","123")], onlineUsers = fromList ["buddy","emil","mate"]})
 -}
 commands :: [String] -> ClientState -> ServerState -> (String, ClientState, ServerState)
 commands ["/quit"] (ClientState {username=u,quit=False,muted=m}) serverState = 
@@ -82,30 +81,4 @@ commands ["/users"] clientState serverState =
     serverState)
 commands ["/commands"] clientState serverState = ("/quit, /mute user, /unmute user, /muted, /users", clientState, serverState) --displays a list of available commands
 commands _ clientState serverState = ("Unknown command", clientState, serverState) --unknown command
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
---Testing
-
-clientTester = ClientState {username="friend",quit=False,muted=Set.fromList ["mate","buddy"] }
-clientTester2 = ClientState {username="friend",quit=False,muted=Set.empty }
-
-serverTester = ServerState {users=Map.fromList [("mate","123"),("buddy","qwerty"),("friend","zxc")],onlineUsers=Set.fromList ["friend","mate","buddy"]}
-
 
