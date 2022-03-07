@@ -22,6 +22,7 @@ data Msg = Msg {
     sender :: Username,
     content :: String
 }
+
 {- main
     Gets port and creates MVar for storing whether the server should continue to run.
     Then calls startServer.
@@ -33,8 +34,17 @@ main = do
     port <- getLine
     serverRunningMVar <- newEmptyMVar
     putMVar serverRunningMVar True
+    forkIO (quitInput serverRunningMVar)
     startServer port serverRunningMVar
-    
+
+{-
+Waits for end user input, if it is recieving it will call a function that shuts down the server.
+-}
+quitInput :: MVar Bool -> IO ()
+quitInput serverRunningMVar = do
+    line <- getLine
+    stopServer serverRunningMVar
+
 {-
     Setups the server socket and mechanism for storing state between threads and
     reads the registered users from file
@@ -76,25 +86,6 @@ serverLoop socket msgChan serverStateMVar serverRunningMVar = do
     running <- readMVar serverRunningMVar
     when running $ do
         serverLoop socket msgChan serverStateMVar serverRunningMVar
-
-{- registerUser serverState username password
-    RETURNS: ServerState with the registered user inserted in users and onlineUsers
--}
-registerUser :: ServerState -> Username -> Password -> ServerState
-registerUser serverState username password =
-    ServerState newUsers newOnlineUsers
-    where 
-        newUsers = Map.insert username password (users serverState)
-        newOnlineUsers = Set.insert username (onlineUsers serverState)
-
-{- loginUser serverState username
-    RETURNS: ServerState with username inserted in onlineUsers
--}
-loginUser :: ServerState -> Username -> ServerState
-loginUser serverState username =
-    ServerState (users serverState) newOnlineUsers
-    where
-        newOnlineUsers = Set.insert username (onlineUsers serverState)
 
 {- authenticateClient socket msgChan serverStateMVar
     Gets username and password of user from client. If user does not exist,
@@ -139,6 +130,25 @@ authenticateClient socket msgChan serverStateMVar = do
                             hPutStrLn handle "0"
                             hPutStrLn handle ("Wrong password: " ++ password)
 
+{- registerUser serverState username password
+    RETURNS: ServerState with the registered user inserted in users and onlineUsers
+-}
+registerUser :: ServerState -> Username -> Password -> ServerState
+registerUser serverState username password =
+    ServerState newUsers newOnlineUsers
+    where 
+        newUsers = Map.insert username password (users serverState)
+        newOnlineUsers = Set.insert username (onlineUsers serverState)
+
+{- loginUser serverState username
+    RETURNS: ServerState with username inserted in onlineUsers
+-}
+loginUser :: ServerState -> Username -> ServerState
+loginUser serverState username =
+    ServerState (users serverState) newOnlineUsers
+    where
+        newOnlineUsers = Set.insert username (onlineUsers serverState)
+
 {- setupClient socket handle msgChan serverStateMVar username
     Setups state sharing mechanisms and starts loops that accept input from client
     and the message channel. Closes handle and socket after the loops have been
@@ -175,7 +185,6 @@ inputLoop handle  msgChan serverStateMVar clientStateMVar= do
         Just commandReturn -> do
             hPutStrLn handle (Server.fst commandReturn)
             putMVar clientStateMVar (Server.snd commandReturn)
-            --putMVar serverStateMVar (Server.thrd commandReturn)
     clientState <- readMVar clientStateMVar
     if quit clientState
         then do 

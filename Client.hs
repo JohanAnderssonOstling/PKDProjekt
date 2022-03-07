@@ -25,7 +25,7 @@ startClient = do
     username <- getLine
     putStrLn "Enter password"
     password <- getLine
-    loginSuccess <- login handle username password
+    login handle username password
     hClose handle
     close socket
     startClient
@@ -68,11 +68,11 @@ login handle username password = do
             errorMsg <- hGetLine handle
             putStrLn errorMsg
     
-{- serverInputLoop handle
+{- serverInputLoop handle clientRunningMVar
     Gets input from server. If "disconnect is recieved" the loop is terminated.
     Otherwise the recieved line is written to program output.
     PRE: The connection that the handle is based on is active.
-    SIDE EFFECTS: Writes to program output.
+    SIDE EFFECTS: Writes to program output and changes MVar.
 -}
 serverInputLoop :: Handle -> MVar Bool -> IO ()
 serverInputLoop handle clientRunningMVar = do
@@ -87,8 +87,8 @@ serverInputLoop handle clientRunningMVar = do
             serverInputLoop handle clientRunningMVar
 
 
-{-  userInputLoop handle
-    Gets program input and writes
+{-  userInputLoop handle clientRunningMVar
+    Gets program input and writes it to server.
     PRE: The connection that the handle is based on is active.
     SIDE EFFECTS: Writes to server
 -}
