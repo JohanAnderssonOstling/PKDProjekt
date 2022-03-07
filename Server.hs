@@ -22,7 +22,11 @@ data Msg = Msg {
     sender :: Username,
     content :: String
 }
-
+{- main
+    Gets port and creates MVar for storing whether the server should continue to run.
+    Then calls startServer.
+    SIDE EFFECTS: Creates and writes to MVar
+-}
 main :: IO ()
 main = do
     putStrLn "Enter port"
@@ -49,13 +53,18 @@ startServer port serverRunningMVar = do
     serverStateMVar <- newEmptyMVar
     users <- readUsers
     putMVar serverStateMVar (ServerState users Set.empty)
-    
     serverLoop sock msgChan serverStateMVar serverRunningMVar
     close sock
 
+{- stopServer serverRunningMVar
+    SIDE EFFECTS: Changes value of server running MVar to false, causing
+    loop in other thread to stop
+-}
+stopServer :: MVar Bool -> IO ()
 stopServer serverRunningMVar = do
     takeMVar serverRunningMVar
     putMVar serverRunningMVar False
+
 {- serverLoop socket msgChan serverStateMVar
     Loop that accepts incoming connections and starts a thread for each one
     SIDE EFFECTS: Creates sockets and starts threads
@@ -104,13 +113,13 @@ authenticateClient socket msgChan serverStateMVar = do
     serverState <- takeMVar serverStateMVar
  
     if Map.notMember username (users serverState)
-        then do -- Username does not exist, register and then login
+        then do -- User does not exist, register and then login
             putMVar serverStateMVar (registerUser serverState username password)
             addUser username password
             hPutStrLn handle "1"
             hPutStrLn handle ("Registered user with username: " ++ username ++ " and password: " ++ password)
             setupClient socket handle msgChan serverStateMVar username
-        else do -- Username does exist
+        else do -- User exists
             case Map.lookup username (users serverState) of
                 Just lookupPassword ->
                     if password == lookupPassword
@@ -121,7 +130,7 @@ authenticateClient socket msgChan serverStateMVar = do
                                     hPutStrLn handle "1"
                                     hPutStrLn handle ("Login succesful with username" ++ username)
                                     setupClient socket handle msgChan serverStateMVar username
-                                else do
+                                else do -- The user is already logged in
                                     putMVar serverStateMVar serverState
                                     hPutStrLn handle "0"
                                     hPutStrLn handle (username ++ "already logged in")
@@ -131,7 +140,10 @@ authenticateClient socket msgChan serverStateMVar = do
                             hPutStrLn handle ("Wrong password: " ++ password)
 
 {- setupClient socket handle msgChan serverStateMVar username
-SIDE EFFECTS: Create MVar, starts thread, closes handle and socket
+    Setups state sharing mechanisms and starts loops that accept input from client
+    and the message channel. Closes handle and socket after the loops have been
+    stopped.
+    SIDE EFFECTS: Create MVar, starts thread, closes handle and socket
 -}
 setupClient :: Socket -> Handle -> Chan Msg -> MVar ServerState -> Username -> IO ()
 setupClient socket handle msgChan serverStateMVar username = do
@@ -145,7 +157,8 @@ setupClient socket handle msgChan serverStateMVar username = do
 
 {- inputLoop handle  msgChan serverStateMVar clientStateMVar
     Gets input from the client, changes state and sends response to client if command
-    , otherwise, writes the input to the message channel
+    , otherwise, writes the input to the message channel. Stops when the client
+    disconnects
     SIDE EFFECTS: Writes to and reads from client, writes to the MVar for client 
     state and the message channel
 -}
@@ -174,9 +187,10 @@ inputLoop handle  msgChan serverStateMVar clientStateMVar= do
 
 
 {- outputLoop handle msgChan clientStateMVar
-Duplicates the message channel and then reads a message from the duplicated
-channel
-SIDE EFFECTS: Writes to client
+    Duplicates the message channel and then reads a message from the duplicated
+    channel. If the message is not muted, the body of the message is written to the client.
+    Stops when the client disconnects.
+    SIDE EFFECTS: Writes to client
 -}
 outputLoop :: Handle -> Chan Msg -> MVar ClientState -> IO ()
 outputLoop handle msgChan clientStateMVar = do
@@ -190,8 +204,6 @@ outputLoop handle msgChan clientStateMVar = do
 
     unless(quit clientState)
         $ outputLoop handle msgChan clientStateMVar
-
-
 
 fst (a,b, c) = a
 snd (a, b, c) = b
