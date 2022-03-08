@@ -47,8 +47,8 @@ connectToServer host port = do
 
 {-  login handle username password
     Writes username and password to server and gets response on whether login
-    was succesfull. If succesfull it starts two loops that communicate with the server.
-    Otherwise it prints the reason the login was not successfull.
+    was successful. If successful it starts two loops that communicate with the server.
+    Otherwise it prints the reason the login was not successful.
     SIDE EFFECTS: Writes to server, starts thread, writes to program output.
     PRE: The connection that the handle is based on is active.
 -}
@@ -69,7 +69,7 @@ login handle username password = do
             putStrLn errorMsg
     
 {- serverInputLoop handle clientRunningMVar
-    Gets input from server. If "disconnect is recieved" the loop is terminated.
+    Gets input from server. If "disconnect" is recieved the loop is terminated.
     Otherwise the recieved line is written to program output.
     PRE: The connection that the handle is based on is active.
     SIDE EFFECTS: Writes to program output and changes MVar.
@@ -77,7 +77,7 @@ login handle username password = do
 serverInputLoop :: Handle -> MVar Bool -> IO ()
 serverInputLoop handle clientRunningMVar = do
     inLine <- hGetLine handle
-    if inLine == "disconnect"
+    if inLine == "Disconnecting"
         then do
             takeMVar clientRunningMVar
             putMVar clientRunningMVar False
