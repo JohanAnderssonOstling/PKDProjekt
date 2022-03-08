@@ -12,15 +12,15 @@ import Types
     EXAMPLES: serializeUsers (Map.fromList [("user1","pass1"),("user2","pass2")]) == "user1 pass1\nuser2 pass2\n"
 -}
 serializeUsers :: UserMap -> String 
-serializeUsers users = Map.foldlWithKey getUser "" users
+serializeUsers users = Map.foldlWithKey getUserString "" users
 
-{- getUser acc username password
+{- getUserString acc username password
     Helper function for serializeUsers
     RETURNS: acc ++ username ++ " " ++ password ++ "\n"
-    EXAMPLES: getUser "" "user1" "pass1" == "user1 pass1\n"
+    EXAMPLES: getUserString "" "user1" "pass1" == "user1 pass1\n"
 -}
-getUser :: String -> Username -> Password -> String
-getUser acc username password = acc ++ username ++ " " ++ password ++ "\n"
+getUserString :: String -> Username -> Password -> String
+getUserString acc username password = acc ++ username ++ " " ++ password ++ "\n"
 
 {- writeUsers users
     Takes a map of users and writes them to users.txt
